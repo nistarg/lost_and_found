@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Items - Campus Lost & Found</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header class="dashboard-header">
+        <nav class="dashboard-nav">
+            <div class="dashboard-logo">Campus Lost & Found</div>
+            <div class="dashboard-menu">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="index.html">Home</a>
+            </div>
+        </nav>
+    </header>
+
+    <div class="dashboard-container">
+        <div class="dashboard-section">
+            <h2>Search Items</h2>
+            <form id="searchForm" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 2rem;">
+                <div class="form-group" style="margin: 0;">
+                    <label for="type">Type</label>
+                    <select id="type">
+                        <option value="">All</option>
+                        <option value="lost">Lost</option>
+                        <option value="found">Found</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label for="category">Category</label>
+                    <select id="category">
+                        <option value="">All</option>
+                        <option value="electronics">Electronics</option>
+                        <option value="clothing">Clothing</option>
+                        <option value="books">Books</option>
+                        <option value="keys">Keys</option>
+                        <option value="accessories">Accessories</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label for="location">Location</label>
+                    <input type="text" id="location" placeholder="Any location">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label for="query">Search</label>
+                    <input type="text" id="query" placeholder="Keywords...">
+                </div>
+                <div style="display: flex; align-items: flex-end;">
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Search</button>
+                </div>
+            </form>
+
+            <div id="results" class="items-grid"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        async function searchItems() {
+            const type = document.getElementById('type').value;
+            const category = document.getElementById('category').value;
+            const location = document.getElementById('location').value;
+            const query = document.getElementById('query').value;
+
+            const params = new URLSearchParams();
+            if (type) params.append('type', type);
+            if (category) params.append('category', category);
+            if (location) params.append('location', location);
+            if (query) params.append('query', query);
+
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="no-data">Loading...</div>';
+
+            try {
+                const response = await fetch(`${API_URL}/items?${params.toString()}`);
+                const data = await response.json();
+
+                if (data.items && data.items.length > 0) {
+                    resultsDiv.innerHTML = data.items.map(item => `
+                        <div class="item-card-full">
+                            ${item.image ? `<img src="${item.image}" alt="${item.title}">` : `<div style="height: 200px; background: #ddd; border-radius: 4px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">No Image</div>`}
+                            <h3>${item.title}</h3>
+                            <p class="item-meta">
+                                <span class="badge badge-${item.status}">${item.status.toUpperCase()}</span>
+                                <strong style="color: ${item.type === 'lost' ? '#e74c3c' : '#27ae60'};">${item.type.toUpperCase()}</strong> • ${item.category}
+                            </p>
+                            <p class="item-meta">${item.location} • ${formatDate(item.date)}</p>
+                            <p>${item.description}</p>
+                            <p class="item-meta" style="margin-top: 0.5rem;"><strong>Posted by:</strong> ${item.userName}</p>
+                            ${item.contactInfo ? `<p class="item-meta"><strong>Contact:</strong> ${item.contactInfo}</p>` : ''}
+                        </div>
+                    `).join('');
+                } else {
+                    resultsDiv.innerHTML = '<div class="no-data">No items found matching your criteria.</div>';
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                resultsDiv.innerHTML = '<div class="no-data">Error loading items. Please try again.</div>';
+            }
+        }
+
+        document.getElementById('searchForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            searchItems();
+        });
+
+        // Load URL params if present
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('category')) document.getElementById('category').value = urlParams.get('category');
+        if (urlParams.has('location')) document.getElementById('location').value = urlParams.get('location');
+        if (urlParams.has('type')) document.getElementById('type').value = urlParams.get('type');
+
+        // Initial search
+        searchItems();
+    </script>
+</body>
+</html>
